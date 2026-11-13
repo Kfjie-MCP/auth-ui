@@ -155,7 +155,7 @@
 .details-layer-content {
   position: absolute;
   right: 18px;
-  bottom: 11px;
+  bottom: 22px;
   left: 18px;
   display: grid;
   grid-template-columns: 1.3fr 1fr .8fr;
@@ -166,8 +166,8 @@
   transition: opacity .28s ease, transform .34s cubic-bezier(.16, 1, .3, 1), visibility 0s linear .34s;
 }
 .details-layer-content > div { min-width: 0; }
-.details-layer-content dt { margin-bottom: 4px; font-size: 11px; line-height: 15px; color: var(--muted-foreground); }
-.details-layer-content dd { overflow: hidden; font-size: 12px; font-weight: 600; line-height: 18px; text-overflow: ellipsis; white-space: nowrap; }
+.details-layer-content dt { margin-bottom: 5px; font-size: 12px; line-height: 17px; color: var(--muted-foreground); }
+.details-layer-content dd { overflow: hidden; font-size: 13px; font-weight: 600; line-height: 20px; text-overflow: ellipsis; white-space: nowrap; }
 .details-original-hitbox {
   position: absolute;
   right: 24px;
@@ -205,9 +205,9 @@
 @media (max-width: 600px) {
   .authorization-stack:has(.connection-details[open]) .authorization-card { transform: translate(-10px, -20px); }
   .authorization-stack:has(.connection-details[open]) .details-layer { transform: translate(10px, 62px); }
-  .details-layer-content { right: 12px; bottom: 8px; left: 12px; gap: 8px; }
-  .details-layer-content dt { font-size: 10px; }
-  .details-layer-content dd { font-size: 11px; }
+  .details-layer-content { right: 12px; bottom: 16px; left: 12px; gap: 8px; }
+  .details-layer-content dt { font-size: 11px; }
+  .details-layer-content dd { font-size: 12px; }
 }
 @media (hover: hover) and (pointer: fine) {
   .authorization-stack:not(:has(.connection-details[open])):hover .authorization-card {

@@ -168,7 +168,7 @@ export default function AuthorizationPage() {
         {context && !cancelled && !expired && !previewCompleted && (
           <div id="connection-detail-layer" className="details-layer" aria-label="连接详情">
             <dl className="details-layer-content">
-              <div><dt>回调地址</dt><dd>{context.callbackHost}</dd></div>
+              <div><dt>回调地址</dt><dd className="pointer-events-auto cursor-help" title={context.callbackHost}>{context.callbackHost}</dd></div>
               <div><dt>授权范围</dt><dd className="font-mono">{service.scope}</dd></div>
               <div><dt>请求有效期</dt><dd className="tabular-nums">{remaining === null ? "—" : `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}`}</dd></div>
             </dl>
