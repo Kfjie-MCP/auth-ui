@@ -34,6 +34,8 @@ export default function AuthorizationPage() {
   const [context, setContext] = useState<AuthContext | null>(null);
   const [visible, setVisible] = useState(false);
   const [pending, setPending] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [redirectTo, setRedirectTo] = useState("");
   const [cancelled, setCancelled] = useState(false);
   const [previewCompleted, setPreviewCompleted] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(null);
@@ -66,6 +68,17 @@ export default function AuthorizationPage() {
     return () => { clearInterval(timer); window.removeEventListener("pageshow", restore); };
   }, []);
 
+  useEffect(() => {
+    if (!pending) return;
+    const recover = (message: string) => { setPending(false); setSubmitError(message); };
+    const blocked = (event: SecurityPolicyViolationEvent) => {
+      if (event.effectiveDirective === "form-action") recover("浏览器阻止了跳转，请返回客户端重新发起连接。");
+    };
+    const timer = setTimeout(() => recover("跳转尚未完成，请检查网络后重试，或返回客户端重新连接。"), 15000);
+    window.addEventListener("securitypolicyviolation", blocked);
+    return () => { clearTimeout(timer); window.removeEventListener("securitypolicyviolation", blocked); };
+  }, [pending]);
+
   const toggleTheme = () => {
     const next = !dark;
     setDark(next);
@@ -76,10 +89,33 @@ export default function AuthorizationPage() {
   const service = services[context?.service || "general"];
   const expired = context?.error === "request_expired" || remaining === 0;
   const deniedPassword = context?.error === "password_incorrect";
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     if (context?.preview) { event.preventDefault(); setVisible(false); setPreviewCompleted(true); return; }
     if (!context?.request || expired || pending) { event.preventDefault(); return; }
+    setSubmitError("");
     setPending(true);
+    if (!/^\/connect\/[a-f0-9-]{36}\/oauth\/approve$/.test(context.action)) return;
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    try {
+      const response = await fetch(context.action, {
+        method: "POST", credentials: "same-origin", redirect: "error",
+        headers: { Accept: "application/json", "X-MCP-Approval": "json", "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ request: context.request, password: String(form.get("password") || "") }),
+        signal: AbortSignal.timeout(12000),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        if (result.error === "request_expired") { setContext({ ...context, error: "request_expired" }); return; }
+        throw new Error(result.error === "password_incorrect" ? "连接密码不正确，请检查后重试。" : response.status === 429 ? "尝试过于频繁，请稍后重试。" : "授权失败，请重新连接。");
+      }
+      const target = new URL(result.redirect);
+      if (!["https:", "http:"].includes(target.protocol) || target.host !== context.callbackHost) throw new Error("返回地址无效，请重新连接。");
+      setRedirectTo(target.href);
+      requestAnimationFrame(() => requestAnimationFrame(() => window.location.assign(target.href)));
+    } catch (error) {
+      setSubmitError(error instanceof Error && error.name === "TimeoutError" ? "授权请求超时，请检查网络后重试。" : error instanceof TypeError ? "无法完成授权请求，请检查网络后重试。" : error instanceof Error ? error.message : "授权失败，请重试。");
+    } finally { setPending(false); }
   };
 
   return (
@@ -114,6 +150,13 @@ export default function AuthorizationPage() {
           <CardContent className="px-6 pb-7 pt-7 sm:px-8 sm:pb-8 sm:pt-8">
             {!context ? (
               <div className="flex min-h-[390px] flex-col items-center justify-center gap-3 text-sm text-muted-foreground" role="status"><Loader2 className="loading-spinner size-5" />正在准备授权请求…</div>
+            ) : redirectTo ? (
+              <div className="py-7 text-center" aria-live="polite">
+                <Check className="mx-auto mb-5 size-8" />
+                <h1 className="text-xl font-semibold">授权已通过</h1>
+                <p className="mt-3 text-[13px] leading-6 text-muted-foreground">正在返回客户端。若未自动跳转，可点击下方按钮。</p>
+                <a className="mt-7 block rounded-lg bg-primary px-4 py-3 text-sm text-primary-foreground" href={redirectTo} rel="noreferrer">继续返回客户端</a>
+              </div>
             ) : cancelled || expired || previewCompleted ? (
               <div className="py-7 text-center" aria-live="polite">
                 <div className="mx-auto mb-5 flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">{previewCompleted ? <Check className="size-6" /> : cancelled ? <X className="size-6" /> : <CircleAlert className="size-6" />}</div>
@@ -149,6 +192,7 @@ export default function AuthorizationPage() {
                       <Button type="button" variant="ghost" size="icon" onClick={() => setVisible(!visible)} aria-label={visible ? "隐藏密码" : "显示密码"} aria-pressed={visible} className="absolute right-1 top-1 size-9 text-muted-foreground hover:bg-transparent hover:text-foreground">{visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</Button>
                     </div>
                     {deniedPassword && <p id="password-error" className="flex items-start gap-1.5 text-xs leading-5 text-destructive" role="alert"><CircleAlert className="mt-0.5 size-3.5 shrink-0" />连接密码不正确，请检查后重试。</p>}
+                    {submitError && <p className="flex items-start gap-1.5 text-xs leading-5 text-destructive" role="alert"><CircleAlert className="mt-0.5 size-3.5 shrink-0" />{submitError}</p>}
                     <p id="password-help" className="text-[11px] leading-5 text-muted-foreground">{context.preview ? "这是界面预览，不会提交密码或创建连接。" : "使用此 MCP 服务的连接密码，无需输入平台账号密码。"}</p>
                   </div>
                   <div className="flex gap-3 pt-1">
@@ -166,7 +210,7 @@ export default function AuthorizationPage() {
 
           <div className="flex items-center justify-center gap-1.5 rounded-b-[19px] border-t bg-muted/35 px-4 py-3 text-[10px] text-muted-foreground"><LockKeyhole className="size-3" />凭据仅用于验证此连接</div>
         </Card>
-        {context && !cancelled && !expired && !previewCompleted && (
+        {context && !cancelled && !expired && !previewCompleted && !redirectTo && (
           <div id="connection-detail-layer" className="details-layer" aria-label="连接详情">
             <dl className="details-layer-content">
               <div><dt>回调地址</dt><dd className="pointer-events-auto cursor-help" title={context.callbackHost}>{context.callbackHost}</dd></div>
@@ -175,7 +219,7 @@ export default function AuthorizationPage() {
             </dl>
           </div>
         )}
-        {context && !cancelled && !expired && !previewCompleted && (
+        {context && !cancelled && !expired && !previewCompleted && !redirectTo && (
           <button type="button" className="details-original-hitbox" aria-hidden="true" tabIndex={-1} onClick={(event) => event.currentTarget.closest(".authorization-stack")?.querySelector("details")?.removeAttribute("open")} />
         )}
         </div>
