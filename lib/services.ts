@@ -1,4 +1,4 @@
-export type ServiceId = "agent-reach" | "transcriptor" | "xuexitong" | "mailbridge" | "general";
+export type ServiceId = "agent-reach" | "transcriptor" | "xuexitong" | "mailbridge" | "momo" | "general";
 
 export const services = {
   "agent-reach": {
@@ -45,6 +45,14 @@ export const services = {
       { icon: "paperclip", title: "管理邮箱内容", description: "处理附件、邮件状态、文件夹及删除操作" },
     ],
   },
+  momo: {
+    name: "墨墨", subtitle: "Momo MCP", category: "词汇与复习", scope: "momo:full",
+    permissions: [
+      { icon: "book", title: "查询单词与进度", description: "查看释义、助记和学习进度" },
+      { icon: "layers", title: "整理复习", description: "记录学习反馈与复习重点" },
+      { icon: "file", title: "管理云词本", description: "访问当前账号的词本与学习记录" },
+    ],
+  },
   general: {
     name: "MCP 服务", subtitle: "连接授权", category: "MCP", scope: "", permissions: [],
   },
@@ -55,6 +63,7 @@ export interface AuthContext {
   request: string;
   clientName: string;
   callbackHost: string;
+  accountLabel?: string;
   action: string;
   expiresAt: number;
   error: "password_incorrect" | "request_expired" | null;

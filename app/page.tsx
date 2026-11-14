@@ -126,6 +126,7 @@ export default function AuthorizationPage() {
                 <div className="auth-intro mb-5 sm:mb-6">
                   <h1 className="text-[23px] font-semibold leading-[1.45] tracking-[-0.7px]">允许<span className="mx-1.5 break-words text-[var(--service)]">{context.clientName}</span>连接吗？</h1>
                   <p className="mt-2 text-[13px] leading-[1.9] text-muted-foreground">连接后，客户端可通过{service.name === "Agent Reach" ? " Agent Reach " : service.name}使用以下功能。</p>
+                  {context.accountLabel && <p className="mt-2 break-words text-[13px] leading-5">账号：{context.accountLabel}</p>}
                 </div>
 
                 <div className="permission-list space-y-3.5 pb-5 sm:space-y-4 sm:pb-6">
