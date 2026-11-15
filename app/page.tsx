@@ -138,10 +138,10 @@ export default function AuthorizationPage() {
         <Card className="authorization-card gap-0 rounded-[20px] border-border/90 py-0">
           <div className="flex items-center justify-between gap-3 rounded-t-[19px] border-b bg-muted/45 px-6 py-4 sm:px-8">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/80 bg-card text-foreground"><ServiceIcon service={context?.service || "general"} className="size-5" /></div>
+              <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border/80 bg-card text-foreground">{context?.connectionIcon?<img src={context.connectionIcon} alt="" className="size-full object-contain"/>:<ServiceIcon service={context?.service || "general"} className="size-5" />}</div>
               <div className="min-w-0">
-                <p className="text-[13px] font-semibold leading-5">{context ? service.name : "MCP 服务"}</p>
-                <p className="text-[11px] leading-4 text-muted-foreground">{context ? service.subtitle : "正在读取连接请求"}</p>
+                <p className="break-words text-[15px] font-semibold leading-6">{context ? context.connectionName||service.name : "MCP 服务"}</p>
+                {context?.connectionName&&context.connectionName!==service.name?<p className="text-xs leading-5 text-muted-foreground">{service.name}</p>:!context?<p className="text-xs leading-5 text-muted-foreground">正在读取连接请求</p>:null}
               </div>
             </div>
             <Badge variant="outline" className="shrink-0 gap-1 rounded-md border-border bg-card px-2 py-0.5 text-[10px] font-normal text-muted-foreground"><ShieldCheck className="size-3" />授权连接</Badge>
@@ -167,7 +167,7 @@ export default function AuthorizationPage() {
             ) : (
               <>
                 <div className="auth-intro mb-5 sm:mb-6">
-                  <h1 className="text-[23px] font-semibold leading-[1.45] tracking-[-0.7px]">允许<span className="mx-1.5 break-words text-[var(--service)]">{context.clientName}</span>连接吗？</h1>
+                  <h1 className="text-[23px] font-semibold leading-[1.45] tracking-[-0.7px]">允许<span className="mx-1.5 break-words text-[var(--service)]">{context.platformName==='Gemini'&&context.clientName==='Google'?'Gemini':context.clientName}</span>连接吗？</h1>
                   <p className="mt-2 text-[13px] leading-[1.9] text-muted-foreground">连接后，客户端可通过{service.name === "Agent Reach" ? " Agent Reach " : service.name}使用以下功能。</p>
                   {context.accountLabel && <p className="mt-2 break-words text-[13px] leading-5">账号：{context.accountLabel}</p>}
                 </div>

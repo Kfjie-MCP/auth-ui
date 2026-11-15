@@ -7,12 +7,15 @@ const serviceNames = { "agent-reach": "Agent Reach", transcriptor: "视频理解
 const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character]));
 const safeJson = value => JSON.stringify(value).replace(/[<>&\u2028\u2029]/g, character => `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`);
 
-export function renderAuthorizationPage({ service, request = "", clientName = "MCP 客户端", redirectUri, expiresAt = 0, error = null, preview = false, action, accountLabel }, template = readFileSync(templatePath, "utf8")) {
+export function renderAuthorizationPage({ service, request = "", clientName = "MCP 客户端", connectionName, connectionIcon, platformName, redirectUri, expiresAt = 0, error = null, preview = false, action, accountLabel }, template = readFileSync(templatePath, "utf8")) {
   if (!Object.hasOwn(serviceNames, service)) throw new Error("Unknown authorization service");
   const redirect = redirectUri ? new URL(redirectUri) : null;
   if (action && !/^\/connect\/[a-f0-9-]{36}\/oauth\/approve$/.test(action)) throw new Error("Invalid authorization action");
   const context = {
     service, request, clientName: String(clientName), callbackHost: redirect?.host || "",
+    ...(typeof connectionName==='string'&&connectionName.trim()?{connectionName:connectionName.trim().slice(0,60)}:{}),
+    ...(typeof connectionIcon==='string'&&connectionIcon.length<=13678&&/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(connectionIcon)?{connectionIcon}:{}),
+    ...(typeof platformName==='string'?{platformName:platformName.slice(0,40)}:{}),
     action: preview ? "#" : (action || `/${service}/oauth/approve`), accountLabel, expiresAt, error, ...(preview ? { preview: true } : {}),
   };
   const marker = /(<script\b[^>]*id="mcp-auth-context"[^>]*>)[\s\S]*?(<\/script>)/;
@@ -20,9 +23,9 @@ export function renderAuthorizationPage({ service, request = "", clientName = "M
   const nonce = randomBytes(24).toString("base64");
   let html = template.replace(marker, (_match, open, close) => open + safeJson(context) + close);
   html = html.replace(/<script(?=\s|>)/g, `<script nonce="${nonce}"`);
-  html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>授权连接 · ${serviceNames[service]}</title>`);
+  html = html.replace(/<title>[\s\S]*?<\/title>/, () => `<title>授权连接 · ${escapeHtml(context.connectionName||serviceNames[service])}</title>`);
   // The same native form remains usable with JavaScript disabled.
-  const fallback = `<noscript><section style="position:fixed;inset:0;z-index:99;background:#f8f9fb;overflow:auto;padding:10vh 24px;font:15px/1.8 system-ui;color:#1c2025"><div style="max-width:440px;margin:auto;background:white;padding:32px;border:1px solid #e8ebef;border-radius:16px"><h1>连接 ${serviceNames[service]}</h1>${error === "request_expired" ? "<p>授权页面已过期，请返回客户端重新连接。</p>" : `<p>授权 ${escapeHtml(clientName)} 连接此服务。</p>${accountLabel ? `<p>账号：${escapeHtml(accountLabel)}</p>` : ""}${error === "password_incorrect" ? '<p role="alert">连接密码不正确，请重试。</p>' : ""}<form method="post" action="${context.action}"><input type="hidden" name="request" value="${escapeHtml(request)}"><label for="fallback-password">MCP 连接密码</label><input id="fallback-password" name="password" type="password" autocomplete="current-password" required style="display:block;width:100%;box-sizing:border-box;padding:12px;margin:8px 0 16px;border:1px solid #dce0e6;border-radius:8px"><button style="padding:12px 20px;border:0;border-radius:8px;background:#252a31;color:white">授权并连接</button></form>`}<p style="font-size:12px;color:#737b87">不希望连接时，可直接关闭此窗口。</p></div></section></noscript>`;
+  const fallback = `<noscript><section style="position:fixed;inset:0;z-index:99;background:#f8f9fb;overflow:auto;padding:10vh 24px;font:15px/1.8 system-ui;color:#1c2025"><div style="max-width:440px;margin:auto;background:white;padding:32px;border:1px solid #e8ebef;border-radius:16px"><h1>连接 ${escapeHtml(context.connectionName||serviceNames[service])}</h1>${error === "request_expired" ? "<p>授权页面已过期，请返回客户端重新连接。</p>" : `<p>授权 ${escapeHtml(clientName)} 连接此服务。</p>${accountLabel ? `<p>账号：${escapeHtml(accountLabel)}</p>` : ""}${error === "password_incorrect" ? '<p role="alert">连接密码不正确，请重试。</p>' : ""}<form method="post" action="${context.action}"><input type="hidden" name="request" value="${escapeHtml(request)}"><label for="fallback-password">MCP 连接密码</label><input id="fallback-password" name="password" type="password" autocomplete="current-password" required style="display:block;width:100%;box-sizing:border-box;padding:12px;margin:8px 0 16px;border:1px solid #dce0e6;border-radius:8px"><button style="padding:12px 20px;border:0;border-radius:8px;background:#252a31;color:white">授权并连接</button></form>`}<p style="font-size:12px;color:#737b87">不希望连接时，可直接关闭此窗口。</p></div></section></noscript>`;
   const previewFallback = '<noscript><p style="padding:32px;font:16px system-ui">这是授权页面预览。请启用 JavaScript 查看交互，无需输入真实密码。</p></noscript>';
   html = html.replace("</body>", (preview ? previewFallback : fallback) + "</body>");
   const csp = [

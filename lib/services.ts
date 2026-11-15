@@ -62,6 +62,9 @@ export interface AuthContext {
   service: ServiceId;
   request: string;
   clientName: string;
+  connectionName?: string;
+  connectionIcon?: string;
+  platformName?: string;
   callbackHost: string;
   accountLabel?: string;
   action: string;
